@@ -32,27 +32,31 @@
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <SPIFFS.h>
+#include <driver/adc.h>
+
 
 #define ADC_PIN 36
 
 WebSocketsServer webSocket = WebSocketsServer(81);
-const char *SSID = "";
-const char *PASSWORD = "";
+const char *SSID = "Rosy";
+const char *PASSWORD = "mahesh@6902";
 
-String myString[3] = {"0", "-1", "25"}; //1st index used for ADC data, 2nd as dummy value per sample, 3rd for timing
+String myString[2] = {"0", "0"}; //1st index used for ADC data, 2nd as packet number
 
 String JSONtxt;
 AsyncWebServer server(80);
 
 String readADC(){
-  float t = analogRead(ADC_PIN);
+  int t = adc1_get_raw(ADC1_CHANNEL_0);
   return String(t);
 }
 
 void setup()
 {
   Serial.begin(115200);
-
+  adc1_config_width(ADC_WIDTH_BIT_12);
+  adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
+  
   if (!SPIFFS.begin()){
     Serial.println("An Error has occurred while mounting SPIFFS");
     return;
@@ -79,7 +83,7 @@ static long num_counter = 0;
 static long ascii_counter = 65;
 void loop(){
   webSocket.loop();
-  String ADCVal = String(readADC().c_str());
+  
   if (num_counter < 1000)
   {
     num_counter++;
@@ -98,12 +102,12 @@ void loop(){
     
   }
   
-  myString[0] = ADCVal;
-  myString[1] = ADCVal + (char)ascii_counter + String(num_counter);
+  myString[0] = readADC();
+  myString[1] =(char)ascii_counter + String(num_counter);
   
   JSONtxt = "{\"ADC1\":\"" + myString[0] + "\",";
-  JSONtxt += "\"ADC2\":\"" + myString[1] + "\",";
-  JSONtxt += "\"ADC3\":\"" + myString[2] + "\"}";
+  JSONtxt += "\"ADC2\":\"" + myString[1] + "\"}"; 
   
   webSocket.broadcastTXT(JSONtxt);
+  
 }

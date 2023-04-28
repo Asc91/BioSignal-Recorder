@@ -145,6 +145,13 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
     stopOscilloscope ();
   ">&nbsp;STOP&nbsp;</button></div>
     </div>
+    <div class='Download'>
+        <button class='button button1' onclick="
+        enableDisableControls (false);
+        stopOscilloscope ();
+        save_csv();
+        ">&nbsp;Save&nbsp;</button>
+    </div>
 
     <script>
 
@@ -175,7 +182,6 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
                             font: {
                                 family: 'Roboto',
                                 size: 20,
-                                // weight: 'bold',
                                 lineHeight: 1.2,
                             },
                             padding: { top: 20, left: 0, right: 0, bottom: 0 }
@@ -192,7 +198,6 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
                             font: {
                                 family: 'Roboto',
                                 size: 20,
-                                // weight: 'bold',
                                 lineHeight: 1.2,
                             },
                             padding: { top: 10, left: 0, right: 0, bottom: 0 }
@@ -224,6 +229,7 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
             }
         }
 
+        var csvFileData = 'Time,Analog,PacketNo.\n';
         var value = 0;
         var time = 0;
         var test = "0";
@@ -232,32 +238,44 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
             stopOscilloscope();
             webSocket = new WebSocket("ws://" + window.location.hostname + ":81/");
             var start_t = Date.now();
-            
-            webSocket.onmessage = function(event){
+
+            webSocket.onmessage = function (event) {
                 JSONobj = JSON.parse(event.data);
 
                 current_t = Date.now();
-                time = parseInt((parseInt(current_t) - parseInt(start_t)) / 1000);
+                time = parseInt((parseInt(current_t) - parseInt(start_t)));
 
                 value = parseInt(JSONobj.ADC1);
                 test = (JSONobj.ADC2);
-                if(debug){console.log(test);}
+                if (debug) { console.log(test); }
 
-                if (data.datasets[0].data.length > 1000  ) {
+                if (data.datasets[0].data.length > 1000) {
                     data.labels.pop();
                     data.datasets[0].data.pop();
                 }
                 data.labels.unshift(time);
                 data.datasets[0].data.unshift(value);
+
+                csvFileData += time + "," + value +"," + test + "\n";
             };
-            
+
         }
         window.setInterval(callback, 1);
-        function callback()
-        {
+        function callback() {
             chart.update();
         }
 
+        function save_csv() {
+
+            var hiddenElement = document.createElement('a');
+            hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(csvFileData);
+            hiddenElement.target = '_blank';
+
+            //provide the name for the CSV file to be downloaded
+            hiddenElement.download = 'chart.csv';
+            hiddenElement.click();
+
+        }
         function enableDisableControls(workMode) {
             if (workMode) {
                 // disable GPIO, analog/digital, trigger, frequency and start, enable stop
