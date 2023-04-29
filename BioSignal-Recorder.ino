@@ -46,7 +46,7 @@ String myString[2] = {"0", "0"}; //1st index used for ADC data, 2nd as packet nu
 String JSONtxt;
 AsyncWebServer server(80);
 
-String readADC(){
+String readADC() {
   int t = adc1_get_raw(ADC1_CHANNEL_0);
   return String(t);
 }
@@ -56,14 +56,14 @@ void setup()
   Serial.begin(115200);
   adc1_config_width(ADC_WIDTH_BIT_12);
   adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
-  
-  if (!SPIFFS.begin()){
+
+  if (!SPIFFS.begin()) {
     Serial.println("An Error has occurred while mounting SPIFFS");
     return;
   }
 
   WiFi.begin(SSID, PASSWORD);
-  while (WiFi.status() != WL_CONNECTED){
+  while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
     Serial.println("Connecting to WiFi..");
   }
@@ -72,42 +72,63 @@ void setup()
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
 
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-            { request->send(SPIFFS, "/index.html"); });
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    request->send(SPIFFS, "/index.html");
+  });
 
   server.begin();
   webSocket.begin();
+  webSocket.onEvent(callback);
 }
-
+bool sample = false;
 static long num_counter = 0;
 static long ascii_counter = 65;
-void loop(){
+void loop() {
   webSocket.loop();
-  
-  if (num_counter < 1000)
+
+  if (sample)
   {
-    num_counter++;
-  }
-  else
-  {
-    num_counter = 0;
-    if(ascii_counter < 90)
+    if (num_counter < 1000)
     {
-      ascii_counter++;  
+      num_counter++;
     }
     else
     {
-      ascii_counter = 65;
+      num_counter = 0;
+      if (ascii_counter < 90)
+      {
+        ascii_counter++;
+      }
+      else
+      {
+        ascii_counter = 65;
+      }
+
     }
-    
+
+    myString[0] = readADC();
+    myString[1] = (char)ascii_counter + String(num_counter);
+
+    JSONtxt = "{\"ADC1\":\"" + myString[0] + "\",";
+    JSONtxt += "\"ADC2\":\"" + myString[1] + "\"}";
+
+    webSocket.broadcastTXT(JSONtxt);
   }
-  
-  myString[0] = readADC();
-  myString[1] =(char)ascii_counter + String(num_counter);
-  
-  JSONtxt = "{\"ADC1\":\"" + myString[0] + "\",";
-  JSONtxt += "\"ADC2\":\"" + myString[1] + "\"}"; 
-  
-  webSocket.broadcastTXT(JSONtxt);
-  
+ 
+}
+
+void callback(byte num, WStype_t type, uint8_t * payload, size_t length)
+{
+  switch (type)
+  {
+    case WStype_DISCONNECTED:
+      Serial.println("Client Disconnected");
+      sample = false;
+      break;
+    case WStype_CONNECTED:
+      Serial.println("Client connected");
+      sample = true;
+      break;
+  }
 }
