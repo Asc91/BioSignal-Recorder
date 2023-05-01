@@ -36,7 +36,7 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
     /* button control */
 
     .button {
-        padding: 10px 15px;
+        padding: 0 1%;
         font-size: 22px;
         text-align: center;
         cursor: pointer;
@@ -47,7 +47,7 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
         box-shadow: 1px 1px #ccc;
         position: relative;
         top: 0px;
-        height: 42px
+        height: 30px
     }
 
     button:disabled {
@@ -182,6 +182,12 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
         height: auto;
         margin: auto;
     }
+
+    select {
+        font-size: 22px;
+        border-radius: 10px;
+        margin-top: 5px;
+    }
 </style>
 <html>
 
@@ -222,6 +228,16 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
         save_csv();
         ">&nbsp;Save&nbsp;</button>
     </div>
+
+    <select id="sampling_rate">
+        <option value="1" selected>100 Hz</option>
+        <option value="2">200 Hz</option>
+        <option value="3">300 Hz</option>
+        <option value="4">400 Hz</option>
+        <option value="5">500 Hz</option>
+    </select>
+
+
 
     <script>
 
@@ -302,7 +318,6 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
 
         function stopOscilloscope() {
             if (webSocket != null) {
-                webSocket.send('stop');
                 webSocket.close();
                 webSocket = null;
             }
@@ -315,7 +330,12 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
 
         function startOscilloscope() {
             stopOscilloscope();
+            sampling_rate = document.getElementById("sampling_rate").value;
+            console.log(sampling_rate);
             webSocket = new WebSocket("ws://" + window.location.hostname + ":81/");
+
+            webSocket.onopen = () => webSocket.send(sampling_rate);
+
             var start_t = Date.now();
 
             webSocket.onmessage = function (event) {
@@ -360,10 +380,12 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
                 // disable GPIO, analog/digital, trigger, frequency and start, enable stop
                 document.getElementById('startButton').disabled = true;
                 document.getElementById('stopButton').disabled = false;
+                document.getElementById('sampling_rate').disabled = false;
             } else {
                 // enable GPIO, analog/digital, trigger, frequency and start, disable stop
                 document.getElementById('startButton').disabled = false;
                 document.getElementById('stopButton').disabled = true;
+                document.getElementById('sampling_rate').disabled = true;
             }
         }
     </script>

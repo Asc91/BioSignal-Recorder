@@ -46,14 +46,25 @@ String myString[2] = {"0", "0"}; //1st index used for ADC data, 2nd as packet nu
 String JSONtxt;
 AsyncWebServer server(80);
 
-String readADC() {
-  int t = adc1_get_raw(ADC1_CHANNEL_0);
-  return String(t);
+
+volatile int interruptCounter;
+int totalInterruptCounter;
+
+hw_timer_t * timer = NULL;
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+
+void IRAM_ATTR onTimer() {
+  portENTER_CRITICAL_ISR(&timerMux);
+  interruptCounter++;
+  portEXIT_CRITICAL_ISR(&timerMux);
+
 }
+
 
 void setup()
 {
   Serial.begin(115200);
+
   adc1_config_width(ADC_WIDTH_BIT_12);
   adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
 
@@ -80,44 +91,13 @@ void setup()
   server.begin();
   webSocket.begin();
   webSocket.onEvent(callback);
+
+
+  
 }
+
 bool sample = false;
-static long num_counter = 0;
-static long ascii_counter = 65;
-void loop() {
-  webSocket.loop();
-
-  if (sample)
-  {
-    if (num_counter < 1000)
-    {
-      num_counter++;
-    }
-    else
-    {
-      num_counter = 0;
-      if (ascii_counter < 90)
-      {
-        ascii_counter++;
-      }
-      else
-      {
-        ascii_counter = 65;
-      }
-
-    }
-
-    myString[0] = readADC();
-    myString[1] = (char)ascii_counter + String(num_counter);
-
-    JSONtxt = "{\"ADC1\":\"" + myString[0] + "\",";
-    JSONtxt += "\"ADC2\":\"" + myString[1] + "\"}";
-
-    webSocket.broadcastTXT(JSONtxt);
-  }
- 
-}
-
+int sampling_rate = 100;
 void callback(byte num, WStype_t type, uint8_t * payload, size_t length)
 {
   switch (type)
@@ -130,5 +110,80 @@ void callback(byte num, WStype_t type, uint8_t * payload, size_t length)
       Serial.println("Client connected");
       sample = true;
       break;
+    case WStype_TEXT:
+      switch ((char)payload[0])
+      { case '1':
+          sampling_rate = 100;
+          Serial.println("100 Hz");
+          break;
+        case '2':
+          sampling_rate = 200;
+          Serial.println("200 Hz");
+          break;
+        case '3':
+          sampling_rate = 300;
+          Serial.println("300 Hz");
+          break;
+        case '4':
+          sampling_rate = 400;
+          Serial.println("400 Hz");
+          break;
+        case '5':
+          sampling_rate = 500;
+          Serial.println("500 Hz");
+          break;
+      }
+      break;
+  }
+  
+  int tick_count = 1000000 / sampling_rate;
+  timer = timerBegin(0, 80, true);
+  timerAttachInterrupt(timer, &onTimer, true);
+  timerAlarmWrite(timer, tick_count, true);
+  timerAlarmEnable(timer);
+}
+
+
+static long num_counter = 0;
+static long ascii_counter = 65;
+
+void loop() {
+  webSocket.loop();
+
+
+  if (interruptCounter > 0) {
+
+    portENTER_CRITICAL(&timerMux);
+    interruptCounter--;
+    portEXIT_CRITICAL(&timerMux);
+    if (sample)
+    {
+      if (num_counter < 1000)
+      {
+        num_counter++;
+      }
+      else
+      {
+        num_counter = 0;
+        if (ascii_counter < 90)
+        {
+          ascii_counter++;
+        }
+        else
+        {
+          ascii_counter = 65;
+        }
+
+      }
+
+      myString[0] = String(adc1_get_raw(ADC1_CHANNEL_0 ));
+      myString[1] = (char)ascii_counter + String(num_counter);
+
+      JSONtxt = "{\"ADC1\":\"" + myString[0] + "\",";
+      JSONtxt += "\"ADC2\":\"" + myString[1] + "\"}";
+
+      webSocket.broadcastTXT(JSONtxt);
+    }
+
   }
 }
