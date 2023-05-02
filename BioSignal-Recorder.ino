@@ -43,6 +43,7 @@ const char *PASSWORD = "mahesh@6902";
 
 String myString[2] = {"0", "0"}; //1st index used for ADC data, 2nd as packet number
 
+
 String JSONtxt;
 AsyncWebServer server(80);
 
@@ -92,8 +93,6 @@ void setup()
   webSocket.begin();
   webSocket.onEvent(callback);
 
-
-  
 }
 
 bool sample = false;
@@ -111,36 +110,26 @@ void callback(byte num, WStype_t type, uint8_t * payload, size_t length)
       sample = true;
       break;
     case WStype_TEXT:
-      switch ((char)payload[0])
-      { case '1':
-          sampling_rate = 100;
-          Serial.println("100 Hz");
-          break;
-        case '2':
-          sampling_rate = 200;
-          Serial.println("200 Hz");
-          break;
-        case '3':
-          sampling_rate = 300;
-          Serial.println("300 Hz");
-          break;
-        case '4':
-          sampling_rate = 400;
-          Serial.println("400 Hz");
-          break;
-        case '5':
-          sampling_rate = 500;
-          Serial.println("500 Hz");
-          break;
+      String rate;
+      for (int i = 0; i < length; i++)
+      {
+        rate += (char)payload[i];
       }
+      rate += '\n';
+      Serial.println(rate);
+      sampling_rate = rate.toInt();
       break;
   }
-  
+
   int tick_count = 1000000 / sampling_rate;
-  timer = timerBegin(0, 80, true);
-  timerAttachInterrupt(timer, &onTimer, true);
-  timerAlarmWrite(timer, tick_count, true);
-  timerAlarmEnable(timer);
+  if (sample)
+  {
+    timer = timerBegin(0, 80, true);
+    timerAttachInterrupt(timer, &onTimer, true);
+    timerAlarmWrite(timer, tick_count, true);
+    timerAlarmEnable(timer);
+  }
+
 }
 
 

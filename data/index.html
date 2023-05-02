@@ -192,9 +192,6 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
 <html>
 
 <head>
-    <link rel='shortcut icon' type='image/x-icon' sizes='192x192' href='/android-192-osc.png'>
-    <link rel='icon' type='image/png' sizes='192x192' href='/android-192-osc.png'>
-    <link rel='apple-touch-icon' sizes='180x180' href='/apple-180-osc.png'>
     <meta http-equiv='content-type' content='text/html; charset=utf-8' />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.8.2/chart.min.js"></script>
 
@@ -230,11 +227,16 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
     </div>
 
     <select id="sampling_rate">
-        <option value="1" selected>100 Hz</option>
-        <option value="2">200 Hz</option>
-        <option value="3">300 Hz</option>
-        <option value="4">400 Hz</option>
-        <option value="5">500 Hz</option>
+        <option value="100" selected>100 Hz</option>
+        <option value="200">200 Hz</option>
+        <option value="300">300 Hz</option>
+        <option value="400">400 Hz</option>
+        <option value="500">500 Hz</option>
+        <option value="1000">1000 Hz</option>
+        <option value="2000">2000 Hz</option>
+        <option value="3000">3000 Hz</option>
+        <option value="4000">4000 Hz</option>
+        <option value="10000">10000 Hz</option>
     </select>
 
 
@@ -324,45 +326,55 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
         }
 
         var csvFileData = 'Time,Analog,PacketNo.\n';
-        var value = 0;
         var time = 0;
-        var test = "0";
 
+        buffer = [[]];
         function startOscilloscope() {
             stopOscilloscope();
-            sampling_rate = document.getElementById("sampling_rate").value;
-            console.log(sampling_rate);
+
+            var sampling_rate = document.getElementById("sampling_rate").value;
+
             webSocket = new WebSocket("ws://" + window.location.hostname + ":81/");
-
             webSocket.onopen = () => webSocket.send(sampling_rate);
-
-            var start_t = Date.now();
 
             webSocket.onmessage = function (event) {
                 JSONobj = JSON.parse(event.data);
 
-                current_t = Date.now();
-                time = parseInt((parseInt(current_t) - parseInt(start_t)));
-
-                value = parseInt(JSONobj.ADC1);
-                test = (JSONobj.ADC2);
-                if (debug) { console.log(test); }
-
-                if (data.datasets[0].data.length > 1000) {
-                    data.labels.pop();
-                    data.datasets[0].data.pop();
+                if (buffer.length > 2*sampling_rate) {
+                    buffer.shift();
                 }
-                data.labels.unshift(time);
-                data.datasets[0].data.unshift(value);
-
-                csvFileData += time + "," + value + "," + test + "\n";
+                buffer.push([parseInt(JSONobj.ADC1), (JSONobj.ADC2)]);
             };
 
+            const refresh_rate = 30
+            var sample_size_per_update = Math.round(parseFloat(sampling_rate) / refresh_rate);
+            
+            window.setInterval(callback, refresh_rate);
+            samples_on_screen = sampling_rate * 2;
+            start_t = Date.now();
+            function callback() {
+                if (buffer.length >= sample_size_per_update) {
+
+                    for (var i = 0; i < sample_size_per_update; i++) {
+                        current_t = Date.now();
+                        time = (parseInt(current_t) - parseInt(start_t));
+                        if (data.datasets[0].data.length > samples_on_screen) {
+                            data.datasets[0].data.pop();
+                            data.labels.pop();
+                        }
+                        data.datasets[0].data.unshift(buffer[0][0]);
+                        data.labels.unshift(time);
+                        csvFileData += time + "," + buffer[0][0] + "," + buffer[0][1] + "\n";
+                        // console.log(buffer[0][0], buffer[0][1]);
+                        buffer.shift();
+                    }
+                }
+                chart.update();
+            }
+
         }
-        window.setInterval(callback, 30);
-        function callback() {
-            chart.update();
-        }
+
+
 
         function save_csv() {
 
