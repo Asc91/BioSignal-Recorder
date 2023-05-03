@@ -219,27 +219,35 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
         <span class="labels" data-on="ON" data-off="OFF"></span>
     </label>
 
-    <div class='Download'>
-        <button class='button button1' onclick="
-        stopOscilloscope ();
-        save_csv();
-        ">&nbsp;Save&nbsp;</button>
-    </div>
-
+    
+<p>
     <select id="sampling_rate">
         <option value="100" selected>100 Hz</option>
         <option value="200">200 Hz</option>
         <option value="300">300 Hz</option>
         <option value="400">400 Hz</option>
         <option value="500">500 Hz</option>
-        <option value="1000">1000 Hz</option>
-        <option value="2000">2000 Hz</option>
-        <option value="3000">3000 Hz</option>
-        <option value="4000">4000 Hz</option>
-        <option value="10000">10000 Hz</option>
     </select>
 
-
+    <select id="GPIO">
+        <option value="4" selected>GPIO 32</option>
+        <option value="5">GPIO 33</option>
+        <option value="6">GPIO 34</option>
+        <option value="7">GPIO 35</option>
+        <option value="0">GPIO 36</option>
+        <option value="1">GPIO 37</option>
+        <option value="2">GPIO 38</option>
+        <option value="3">GPIO 39</option>
+    </select>
+    
+</p>
+    
+    <div class='Download'>
+        <button class='button button1' onclick="
+        stopOscilloscope ();
+        save_csv();
+        ">&nbsp;Save&nbsp;</button>
+    </div>
 
     <script>
 
@@ -333,9 +341,10 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
             stopOscilloscope();
 
             var sampling_rate = document.getElementById("sampling_rate").value;
+            var GPIO = document.getElementById("GPIO").value;
 
             webSocket = new WebSocket("ws://" + window.location.hostname + ":81/");
-            webSocket.onopen = () => webSocket.send(sampling_rate);
+            webSocket.onopen = () => webSocket.send(sampling_rate + GPIO);
 
             webSocket.onmessage = function (event) {
                 JSONobj = JSON.parse(event.data);

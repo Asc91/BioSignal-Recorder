@@ -97,6 +97,10 @@ void setup()
 
 bool sample = false;
 int sampling_rate = 100;
+
+
+int8_t adc =  4;
+
 void callback(byte num, WStype_t type, uint8_t * payload, size_t length)
 {
   switch (type)
@@ -110,8 +114,14 @@ void callback(byte num, WStype_t type, uint8_t * payload, size_t length)
       sample = true;
       break;
     case WStype_TEXT:
+      String gpio;
+      gpio += (char)payload[length - 1];
+      gpio += '\n';
+      adc = gpio.toInt();
+      
+      Serial.println((char)payload[length - 1]);
       String rate;
-      for (int i = 0; i < length; i++)
+      for (int i = 0; i < length - 1; i++)
       {
         rate += (char)payload[i];
       }
@@ -165,7 +175,7 @@ void loop() {
 
       }
 
-      myString[0] = String(adc1_get_raw(ADC1_CHANNEL_0 ));
+      myString[0] = String(adc1_get_raw((adc1_channel_t)adc));
       myString[1] = (char)ascii_counter + String(num_counter);
 
       JSONtxt = "{\"ADC1\":\"" + myString[0] + "\",";
