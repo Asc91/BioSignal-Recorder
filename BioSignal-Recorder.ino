@@ -3,7 +3,7 @@
 
 // Copyright (c) 2021 Moteen Shah moteenshah.02@gmail.com
 
-
+  
 // Upside Down Labs invests time and resources providing this open source code,
 // please support Upside Down Labs and open-source hardware by purchasing
 // products from Upside Down Labs!
@@ -34,40 +34,52 @@
 #include <SPIFFS.h>
 #include <driver/adc.h>
 
-
-#define ADC_PIN 36
-
 WebSocketsServer webSocket = WebSocketsServer(81);
 const char *SSID = "Rosy";
 const char *PASSWORD = "mahesh@6902";
 
-String myString[2] = {"0", "0"}; //1st index used for ADC data, 2nd as packet number
-
+String myString[3] = {"0", "0", "0"}; //1st index used for channel no., 2nd for data and 3rd as packet number
 
 String JSONtxt;
 AsyncWebServer server(80);
 
+volatile int interruptCounter[4] = {0};
 
-volatile int interruptCounter;
-int totalInterruptCounter;
+hw_timer_t * timer_1 = NULL;
+hw_timer_t * timer_2 = NULL;
+hw_timer_t * timer_3 = NULL;
+hw_timer_t * timer_4 = NULL;
 
-hw_timer_t * timer = NULL;
-portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE timerMux_1 = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE timerMux_2 = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE timerMux_3 = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE timerMux_4 = portMUX_INITIALIZER_UNLOCKED;
 
-void IRAM_ATTR onTimer() {
-  portENTER_CRITICAL_ISR(&timerMux);
-  interruptCounter++;
-  portEXIT_CRITICAL_ISR(&timerMux);
-
+void IRAM_ATTR onTimer_1() {
+  portENTER_CRITICAL_ISR(&timerMux_1);
+  interruptCounter[0]++;
+  portEXIT_CRITICAL_ISR(&timerMux_1);
+}
+void IRAM_ATTR onTimer_2() {
+  portENTER_CRITICAL_ISR(&timerMux_2);
+  interruptCounter[1]++;
+  portEXIT_CRITICAL_ISR(&timerMux_2);
+}
+void IRAM_ATTR onTimer_3() {
+  portENTER_CRITICAL_ISR(&timerMux_3);
+  interruptCounter[2]++;
+  portEXIT_CRITICAL_ISR(&timerMux_3);
+}
+void IRAM_ATTR onTimer_4() {
+  portENTER_CRITICAL_ISR(&timerMux_4);
+  interruptCounter[3]++;
+  portEXIT_CRITICAL_ISR(&timerMux_4);
 }
 
 
 void setup()
 {
   Serial.begin(115200);
-
-  adc1_config_width(ADC_WIDTH_BIT_12);
-  adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
 
   if (!SPIFFS.begin()) {
     Serial.println("An Error has occurred while mounting SPIFFS");
@@ -99,8 +111,9 @@ bool sample = false;
 int sampling_rate = 100;
 
 
-int8_t adc =  4;
-
+int adc[4];
+int channel_count = 0;
+int total_channel = 0;
 void callback(byte num, WStype_t type, uint8_t * payload, size_t length)
 {
   switch (type)
@@ -108,80 +121,134 @@ void callback(byte num, WStype_t type, uint8_t * payload, size_t length)
     case WStype_DISCONNECTED:
       Serial.println("Client Disconnected");
       sample = false;
+      channel_count = 0;
+      total_channel = 0;
       break;
     case WStype_CONNECTED:
       Serial.println("Client connected");
       sample = true;
       break;
     case WStype_TEXT:
+      String rate;
       String gpio;
+      total_channel++;
       gpio += (char)payload[length - 1];
       gpio += '\n';
-      adc = gpio.toInt();
-      
-      Serial.println((char)payload[length - 1]);
-      String rate;
+      adc[channel_count] = gpio.toInt();
+      Serial.print("Channel: ");
+      Serial.println(gpio);
+
       for (int i = 0; i < length - 1; i++)
       {
         rate += (char)payload[i];
       }
       rate += '\n';
-      Serial.println(rate);
       sampling_rate = rate.toInt();
-      break;
-  }
+      Serial.print("Sampling rate: ");
+      Serial.println(rate);
 
-  int tick_count = 1000000 / sampling_rate;
-  if (sample)
-  {
-    timer = timerBegin(0, 80, true);
-    timerAttachInterrupt(timer, &onTimer, true);
-    timerAlarmWrite(timer, tick_count, true);
-    timerAlarmEnable(timer);
+      send_samples(sampling_rate, adc[channel_count], channel_count);
+      channel_count++;
   }
-
 }
 
 
-static long num_counter = 0;
-static long ascii_counter = 65;
+void send_samples(int sampling_rate, int adc, int channel_count)
+{
 
+  int tick_count = 1000000 / sampling_rate;
+  switch (channel_count)
+  {
+    case 0:
+      timer_1 = timerBegin(0, 80, true);
+      timerAttachInterrupt(timer_1, &onTimer_1, true);
+      timerAlarmWrite(timer_1, tick_count, true);
+      timerAlarmEnable(timer_1);
+      break;
+
+    case 1:
+      timer_2 = timerBegin(1, 80, true);
+      timerAttachInterrupt(timer_2, &onTimer_2, true);
+      timerAlarmWrite(timer_2, tick_count, true);
+      timerAlarmEnable(timer_2);
+      break;
+
+    case 2:
+      timer_3 = timerBegin(2, 80, true);
+      timerAttachInterrupt(timer_3, &onTimer_3, true);
+      timerAlarmWrite(timer_3, tick_count, true);
+      timerAlarmEnable(timer_3);
+      break;
+
+    case 3:
+      timer_4 = timerBegin(3, 80, true);
+      timerAttachInterrupt(timer_4, &onTimer_4, true);
+      timerAlarmWrite(timer_4, tick_count, true);
+      timerAlarmEnable(timer_4);
+      break;
+
+  }
+  adc1_config_width(ADC_WIDTH_BIT_12);
+  adc1_config_channel_atten((adc1_channel_t)(adc), ADC_ATTEN_DB_11);
+}
+
+static long num_counter[4] = {0};
+static long ascii_counter[4] = {65, 65, 65, 65};
+portMUX_TYPE * timer_mux = NULL;
 void loop() {
   webSocket.loop();
 
-
-  if (interruptCounter > 0) {
-
-    portENTER_CRITICAL(&timerMux);
-    interruptCounter--;
-    portEXIT_CRITICAL(&timerMux);
-    if (sample)
+  for (int i = 0; i < total_channel; i++)
+  {Serial.println(i);
+    switch (i)
     {
-      if (num_counter < 1000)
+      case 0:
+        timer_mux = &timerMux_1;
+        break;
+      case 1:
+        timer_mux = &timerMux_2;
+        break;
+      case 2:
+        timer_mux = &timerMux_3;
+        break;
+      case 3:
+        timer_mux = &timerMux_4;
+        break;
+    }
+    if (interruptCounter[i] > 0)
+    {
+
+      portENTER_CRITICAL(timer_mux);
+      interruptCounter[i]--;
+      portEXIT_CRITICAL(timer_mux);
+
+      if (num_counter[i] < 1000)
       {
-        num_counter++;
+        num_counter[i]++;
       }
       else
       {
-        num_counter = 0;
-        if (ascii_counter < 90)
+        num_counter[i] = 0;
+        if (ascii_counter[i] < 90)
         {
-          ascii_counter++;
+          ascii_counter[i]++;
         }
         else
         {
-          ascii_counter = 65;
+          ascii_counter[i] = 65;
         }
 
       }
 
-      myString[0] = String(adc1_get_raw((adc1_channel_t)adc));
-      myString[1] = (char)ascii_counter + String(num_counter);
-
-      JSONtxt = "{\"ADC1\":\"" + myString[0] + "\",";
-      JSONtxt += "\"ADC2\":\"" + myString[1] + "\"}";
+      myString[0] = String(i);
+      myString[1] = String(adc1_get_raw((adc1_channel_t)adc[i]));
+      myString[2] = (char)ascii_counter[i] + String(num_counter[i]);
+      JSONtxt = "{\"channel_count\":\"" + myString[0] + "\",";
+      JSONtxt += "\"ADC\":\"" + myString[1] + "\",";
+      JSONtxt += "\"packet_count\":\"" + myString[2] + "\"}";
 
       webSocket.broadcastTXT(JSONtxt);
+
     }
 
   }

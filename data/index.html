@@ -188,13 +188,37 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
         border-radius: 10px;
         margin-top: 5px;
     }
+
+    .inner-select-wrapper {
+        position: absolute;
+        z-index: 1;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        padding: 5px;
+    }
+
+    .option-wrapper {
+        position: relative;
+    }
+
+    .option-wrapper:hover {
+        cursor: pointer;
+        background-color: #f2f2f2;
+    }
+
+    #channel_count {
+        text-align: center;
+    }
 </style>
 <html>
 
 <head>
     <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"
+        integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.8.2/chart.min.js"></script>
-
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <title>Esp32_oscilloscope</title>
 </head>
@@ -212,44 +236,77 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
         </div>
     </div>
 
-
     <label class="toggle">
         <input type="checkbox" onclick="toggle(this)">
         <span class="slider"></span>
         <span class="labels" data-on="ON" data-off="OFF"></span>
     </label>
 
-    
-<p>
-    <select id="sampling_rate">
-        <option value="100" selected>100 Hz</option>
-        <option value="200">200 Hz</option>
-        <option value="300">300 Hz</option>
-        <option value="400">400 Hz</option>
-        <option value="500">500 Hz</option>
-    </select>
 
-    <select id="GPIO">
-        <option value="4" selected>GPIO 32</option>
-        <option value="5">GPIO 33</option>
-        <option value="6">GPIO 34</option>
-        <option value="7">GPIO 35</option>
-        <option value="0">GPIO 36</option>
-        <option value="1">GPIO 37</option>
-        <option value="2">GPIO 38</option>
-        <option value="3">GPIO 39</option>
-    </select>
-    
-</p>
-    
-    <div class='Download'>
+    <p>
+        <select id="channel_count" onclick="showOption()">
+            <option value="0">No. of Channels</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+        </select>
+
+
+
         <button class='button button1' onclick="
         stopOscilloscope ();
         save_csv();
         ">&nbsp;Save&nbsp;</button>
-    </div>
+
+
+    </p>
 
     <script>
+
+        function showOption() {
+
+            if ($(".select_list_gpio")[0]) {
+                $(".select_list_gpio").remove();
+            }
+            if ($(".select_list_rate")[0]) {
+                $(".select_list_rate").remove();
+            }
+
+            var parent = document.body;
+            gpio_text = ["GPIO 32", "GPIO 33", "GPIO 34", "GPIO 35", "GPIO 36", "GPIO 37", "GPIO 38", "GPIO 39"];
+            gpio_value = ['4', '5', '6', '7', '0', '1', '2', '3'];
+            rate_text = ["100 Hz", "200 Hz", "300 Hz", "400 Hz", "500 Hz"];
+            rate_value = ["100", "200", "300", "400", "500"]
+
+            for (var i = 0; i < $("#channel_count").val(); i++) {
+                var subparent = document.createElement('p');
+
+                var select_list_gpio = document.createElement("select");
+                select_list_gpio.setAttribute("class", "select_list_gpio");
+                var select_list_rate = document.createElement("select");
+                select_list_rate.setAttribute("class", "select_list_rate");
+
+                for (var j = 0; j < gpio_text.length; j++) {
+                    option = document.createElement("option");
+                    option.value = gpio_value[j];
+                    option.text = gpio_text[j];
+                    select_list_gpio.appendChild(option);
+                }
+
+                for (var j = 0; j < rate_text.length; j++) {
+                    option = document.createElement("option");
+                    option.value = rate_value[j];
+                    option.text = rate_text[j];
+                    select_list_rate.appendChild(option);
+                }
+                subparent.appendChild(select_list_gpio);
+                subparent.appendChild(select_list_rate);
+
+                parent.appendChild(subparent);
+            }
+
+        }
 
         function toggle(checkbox) {
             if (checkbox.checked) {
@@ -264,10 +321,34 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
         var data = {
             labels: [0],
             datasets: [{
-                label: 'Real-time Data',
+                label: 'Channel_1',
                 data: [],
-                borderColor: '#e67e22',
-                backgroundColor: '#2ecc71',
+                borderColor: '#00CCFF',
+                backgroundColor: '#00CCFF',
+                borderWidth: 1,
+                pointRadius: 0,
+            },
+            {
+                label: 'Channel_2',
+                data: [],
+                borderColor: '#e06666',
+                backgroundColor: '#e06666',
+                borderWidth: 1,
+                pointRadius: 0,
+            },
+            {
+                label: 'Channel_3',
+                data: [],
+                borderColor: '#6aa84f',
+                backgroundColor: '#6aa84f',
+                borderWidth: 1,
+                pointRadius: 0,
+            },
+            {
+                label: 'Channel_4',
+                data: [],
+                borderColor: '#F1C232',
+                backgroundColor: '#F1C232',
                 borderWidth: 1,
                 pointRadius: 0,
             }]
@@ -333,51 +414,58 @@ This file is part of Esp32_oscilloscope project: https://github.com/BojanJurca/E
             }
         }
 
-        var csvFileData = 'Time,Analog,PacketNo.\n';
-        var time = 0;
-
-        buffer = [[]];
+        var csvFileData = 'Channel, Time, Analog, Packet No.\n';
         function startOscilloscope() {
             stopOscilloscope();
 
-            var sampling_rate = document.getElementById("sampling_rate").value;
-            var GPIO = document.getElementById("GPIO").value;
-
+            var pin = [];
+            var i = 0;
+            $(".select_list_gpio").each(function () {
+                pin[i] = $(this).val();
+                i++;
+            });
+            
+            var rate = [];
+            i = 0;
+            $(".select_list_rate").each(function () {
+                rate[i] = $(this).val();
+                i++;
+            });
             webSocket = new WebSocket("ws://" + window.location.hostname + ":81/");
-            webSocket.onopen = () => webSocket.send(sampling_rate + GPIO);
+            webSocket.addEventListener("open", (event) => {
 
+                for (var i = 0; i < $("#channel_count").val(); i++) {
+                    msg = rate[i] + pin[i];
+                    webSocket.send(msg);
+                }
+            })
+
+            start_t = Date.now();
             webSocket.onmessage = function (event) {
                 JSONobj = JSON.parse(event.data);
+                channel_count = JSONobj.channel_count;
+                ADC = JSONobj.ADC;
+                packet_count = JSONobj.packet_count;
 
-                if (buffer.length > 2*sampling_rate) {
-                    buffer.shift();
+
+                if (data.labels.length > 1000) {
+                    data.labels.pop();
                 }
-                buffer.push([parseInt(JSONobj.ADC1), (JSONobj.ADC2)]);
+                if (data.datasets[channel_count].data.length > 1000) {
+                    data.datasets[channel_count].data.pop();
+                }
+                data.datasets[channel_count].data.unshift(ADC);
+
+                current_t = Date.now();
+                time = parseInt(current_t) - parseInt(start_t)
+                data.labels.unshift(time);
+
+                csvFileData += channel_count + "," + time + "," + ADC + "," + packet_count + "\n";
             };
 
-            const refresh_rate = 30
-            var sample_size_per_update = Math.round(parseFloat(sampling_rate) / refresh_rate);
-            
-            window.setInterval(callback, refresh_rate);
-            samples_on_screen = sampling_rate * 2;
-            start_t = Date.now();
-            function callback() {
-                if (buffer.length >= sample_size_per_update) {
 
-                    for (var i = 0; i < sample_size_per_update; i++) {
-                        current_t = Date.now();
-                        time = (parseInt(current_t) - parseInt(start_t));
-                        if (data.datasets[0].data.length > samples_on_screen) {
-                            data.datasets[0].data.pop();
-                            data.labels.pop();
-                        }
-                        data.datasets[0].data.unshift(buffer[0][0]);
-                        data.labels.unshift(time);
-                        csvFileData += time + "," + buffer[0][0] + "," + buffer[0][1] + "\n";
-                        // console.log(buffer[0][0], buffer[0][1]);
-                        buffer.shift();
-                    }
-                }
+            window.setInterval(callback, 30);
+            function callback() {
                 chart.update();
             }
 
