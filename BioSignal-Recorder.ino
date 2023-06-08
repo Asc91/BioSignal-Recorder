@@ -2,7 +2,6 @@
 // https://github.com/upsidedownlabs/BioSignal-Recorder
 
 // Copyright (c) 2021 Moteen Shah moteenshah.02@gmail.com
-
   
 // Upside Down Labs invests time and resources providing this open source code,
 // please support Upside Down Labs and open-source hardware by purchasing
@@ -38,7 +37,9 @@ WebSocketsServer webSocket = WebSocketsServer(81);
 const char *SSID = "Rosy";
 const char *PASSWORD = "mahesh@6902";
 
-String myString[3] = {"0", "0", "0"}; //1st index used for channel no., 2nd for data and 3rd as packet number
+// Add SSID and PASSWORD for network you are connected to
+const char *SSID = "";
+const char *PASSWORD = "";
 
 String JSONtxt;
 AsyncWebServer server(80);
