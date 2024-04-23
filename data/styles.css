@@ -1,0 +1,30 @@
+@media (min-width: 991.98px) {
+    .child {
+      max-width: 95%;
+      max-height: 400px;
+    }
+  }
+
+  .child {
+    max-height: 400px;
+  }
+  .checkbox-menu label {
+    display: block;
+    padding: 3px 10px;
+    clear: both;
+    font-weight: normal;
+    line-height: 1.42857143;
+    color: #333;
+    white-space: nowrap;
+    margin: 0;
+    transition: background-color 0.4s ease;
+  }
+  .checkbox-menu input {
+    margin: 0px 5px;
+    top: 2px;
+    position: relative;
+  }
+  .checkbox-menu label:hover,
+  .checkbox-menu label:focus {
+    background-color: #555555;
+  }

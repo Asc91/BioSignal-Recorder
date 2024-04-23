@@ -69,11 +69,21 @@ Fot all changes to take place, reload Arduino IDE.
 
 |Feature | Discription|
 |--------|------------|
-|Multichannel       |    ESP32 has 4 hardware timers which are currently being used for sampling data according to provided sampling rate. User can choose number of channels to use.|
-|Variable sampling rate | Multiple options for sampling rate are given from 100Hz to 5000Hz.Every channel can be set with different sampling rate.|
+|Multichannel       |    ESP32 has 4 hardware timers which are currently being used for sampling data according to provided sampling rate. User can choose upto 4 channels to use concurrently|
+|Variable sampling rate | Every channel can be set with different sampling rate.|
 |Save as CSV | Data can be saved as a CSV file and downloaded on computer. CSV file contains data with timestamp, channel number and packet number of corresponding channel.|
 
-Note: ESP32 has 2 ADC units. ADC1 and ADC2. ADC2 is shared with WIFI module hence we can only use pins in ADC1 channel. ADC1 has 8 pins, GPIO 32-39.
+Note: ESP32 has 2 ADC units. ADC1 and ADC2. ADC2 is shared with WIFI module hence we can only use pins in ADC1 channel. ADC1 has 8 pins, GPIO 32-39. Pairs of ADC channel number and curresponding GPIO number is given below.
+| ADC | GPIO |
+|---|---|
+|Channel 0 | 36 |
+|Channel 1 | 37 |
+|Channel 2 | 38 |
+|Channel 3 | 39 |
+|Channel 4 | 32 | 
+|Channel 5 | 33 |
+|Channel 6 | 34 |
+|Channel 7 | 35 |
 
 ## Resources
 

@@ -109,8 +109,18 @@ void setup()
   server.on("/", HTTP_GET, [](AsyncWebServerRequest * request)
   {
     request->send(SPIFFS, "/index.html");
+    Serial.print("sent html \n");
   });
-
+  server.on("/styles.css", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    request->send(SPIFFS, "/styles.css");
+    Serial.print("sent css \n");
+  });
+  server.on("/app.js", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    request->send(SPIFFS, "/app.js");
+    Serial.print("sent js \n");
+  });
   // start server
   server.begin();
 
@@ -266,7 +276,7 @@ void loop() {
       portEXIT_CRITICAL(timer_mux);
 
       // Store samples in buffer until enough samples are taken for one frame
-      if (buffer_counter[i] < round((float)sampling_rate / 30.0))
+      if (buffer_counter[i] < round((float)sampling_rate / 60.0))
       {
         buffer_add[i][buffer_counter[i]] = adc1_get_raw((adc1_channel_t)adc[i]) & 0x0FFF;
         buffer_counter[i]++;
